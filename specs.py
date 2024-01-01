@@ -3,6 +3,23 @@ import psutil
 import socket
 import cpuinfo
 import os
+import GPUtil  # Importing GPUtil for GPU information
+
+def get_gpu_info():
+    gpus = GPUtil.getGPUs()
+    gpu_info = []
+    for gpu in gpus:
+        gpu_data = {
+            "GPU Name": gpu.name,
+            "GPU ID": gpu.id,
+            "GPU Load": f"{gpu.load * 100}%",
+            "GPU Free Memory": f"{gpu.memoryFree} MB",
+            "GPU Used Memory": f"{gpu.memoryUsed} MB",
+            "GPU Total Memory": f"{gpu.memoryTotal} MB",
+            "GPU Temperature": f"{gpu.temperature} °C"
+        }
+        gpu_info.append(gpu_data)
+    return gpu_info
 
 def get_system_specs(include_network_info=False):
     try:
@@ -17,7 +34,8 @@ def get_system_specs(include_network_info=False):
             "Platform": platform.system(),
             "Platform Version": platform.version(),
             "Platform Release": platform.release(),
-            "RAM": f"{round(psutil.virtual_memory().total / (1024 ** 3))} GB"
+            "RAM": f"{round(psutil.virtual_memory().total / (1024 ** 3))} GB",
+            "GPUs (NVDIA)": get_gpu_info()  # Adding GPU information
         }
 
         # Adding network information if requested
@@ -32,7 +50,13 @@ def get_system_specs(include_network_info=False):
 def write_to_file(filename, data):
     with open(filename, 'w') as file:
         for key, value in data.items():
-            file.write(f"{key}: {value}\n")
+            if isinstance(value, list):
+                file.write(f"{key}:\n")
+                for item in value:
+                    for subkey, subvalue in item.items():
+                        file.write(f"    {subkey}: {subvalue}\n")
+            else:
+                file.write(f"{key}: {value}\n")
 
 def ask_user_network_info():
     response = input("Include hostname and IP address? (Y/N): ")
@@ -45,7 +69,13 @@ def main():
 
     # Printing to console
     for key, value in system_specs.items():
-        print(f"{key}: {value}")
+        if isinstance(value, list):
+            print(f"{key}:")
+            for item in value:
+                for subkey, subvalue in item.items():
+                    print(f"    {subkey}: {subvalue}")
+        else:
+            print(f"{key}: {value}")
 
     # Pause with a "Press any key to continue" prompt
     input("Press ENTER to continue...")
